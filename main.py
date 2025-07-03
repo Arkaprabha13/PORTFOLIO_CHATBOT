@@ -15,7 +15,12 @@ app = FastAPI(title="Arka AI Chat API")
 
 # Initialize assistant with error handling
 try:
-    assistant = ArkaAIAssistant()
+    proxies = {
+        "http": "http://user:password@proxy-server.com:8080",
+        "https": "https://user:password@proxy-server.com:8080"
+    }
+
+    assistant = ArkaAIAssistant(proxies=proxies)
     logger.info("✅ Assistant initialized successfully")
 except Exception as e:
     logger.error(f"❌ Failed to initialize assistant: {e}")
