@@ -4,7 +4,10 @@ from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
-
+ proxies = {
+        "http": "http://user:password@proxy-server.com:8080",
+        "https": "https://user:password@proxy-server.com:8080"
+    }
 class ArkaAIAssistant:
     def __init__(self) -> None:
         
