@@ -7,10 +7,12 @@ load_dotenv()
 
 class ArkaAIAssistant:
     def __init__(self) -> None:
-        self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        
         if not os.getenv("GROQ_API_KEY"):
             raise ValueError("GROQ_API_KEY not found in environment variables")
-        
+        if proxies:
+            self._configure_proxies(proxies)
+        self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
         self.profile = {
             "personal": {
                 "name": "Arkaprabha Banerjee",
@@ -296,7 +298,14 @@ class ArkaAIAssistant:
         cleaned_response = self._clean_response(raw_response)
         
         return cleaned_response
-
+    def _configure_proxies(self, proxies: dict) -> None:
+        """Configure the proxy for the Groq client or the HTTP client."""
+        # If Groq supports proxies directly, this could be passed to it.
+        # If not, configure the proxy for the underlying HTTP client (e.g., requests or httpx).
+        if hasattr(self.client, 'session'):
+            self.client.session.proxies.update(proxies)
+        else:
+            print("Groq client does not directly support proxies, consider using an alternative client.")
     def _clean_response(self, response: str) -> str:
         """Remove <think> tags and clean up formatting"""
         import re
