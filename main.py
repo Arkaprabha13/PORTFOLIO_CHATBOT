@@ -20,7 +20,7 @@ try:
         "https": "https://user:password@proxy-server.com:8080"
     }
 
-    assistant = ArkaAIAssistant(proxies=proxies)
+    assistant = ArkaAIAssistant()
     logger.info("✅ Assistant initialized successfully")
 except Exception as e:
     logger.error(f"❌ Failed to initialize assistant: {e}")
