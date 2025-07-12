@@ -45,17 +45,18 @@ class ChatResponse(BaseModel):
     timestamp: str
 
 # Initialize Groq client directly (no ArkaAIAssistant class)
-client = None
-if Groq:
-    try:
-        groq_api_key = os.getenv("GROQ_API_KEY")
-        if groq_api_key:
-            client = Groq(api_key=groq_api_key)
-            print("✅ Groq client initialized successfully")
-        else:
-            print("❌ GROQ_API_KEY not found")
-    except Exception as e:
-        print(f"❌ Groq client initialization failed: {e}")
+# client = None
+# if Groq:
+#     try:
+#         groq_api_key = os.getenv("GROQ_API_KEY")
+#         if groq_api_key:
+#             client = Groq(api_key=groq_api_key)
+#             print("✅ Groq client initialized successfully")
+#         else:
+#             print("❌ GROQ_API_KEY not found")
+#     except Exception as e:
+#         print(f"❌ Groq client initialization failed: {e}")
+client = Groq(api_key= os.getenv("GROQ_API_KEY"))
 
 profile_data = """
 You are Arka AI representing Arkaprabha Banerjee - Full-Stack ML Engineer from Kolkata, India.
