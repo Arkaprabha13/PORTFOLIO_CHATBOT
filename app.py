@@ -5,26 +5,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
-
-# Debug groq package contents
-try:
-    import groq
-    print(f"Groq package contents: {dir(groq)}")
-    from groq import Groq
-    print("✅ Groq imported successfully")
-except ImportError as e:
-    print(f"❌ Groq import failed: {e}")
-    # Try alternative import methods
-    try:
-        from groq.client import Groq
-        print("✅ Groq imported from groq.client")
-    except ImportError:
-        try:
-            from groq import Client as Groq
-            print("✅ Groq imported as Client")
-        except ImportError:
-            print("❌ All Groq import methods failed")
-            Groq = None
+from groq import Groq
 
 app = FastAPI(title="Arka AI Assistant")
 
@@ -44,19 +25,18 @@ class ChatResponse(BaseModel):
     response: str
     timestamp: str
 
-# Initialize Groq client directly (no ArkaAIAssistant class)
-# client = None
-# if Groq:
-#     try:
-#         groq_api_key = os.getenv("GROQ_API_KEY")
-#         if groq_api_key:
-#             client = Groq(api_key=groq_api_key)
-#             print("✅ Groq client initialized successfully")
-#         else:
-#             print("❌ GROQ_API_KEY not found")
-#     except Exception as e:
-#         print(f"❌ Groq client initialization failed: {e}")
-client = Groq(api_key= os.getenv("GROQ_API_KEY"))
+# Clean Groq client initialization (no proxy configuration)
+try:
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    if not groq_api_key:
+        raise ValueError("GROQ_API_KEY environment variable is required")
+    
+    # Simple initialization without proxy parameters
+    client = Groq(api_key=groq_api_key)
+    print("✅ Groq client initialized successfully")
+except Exception as e:
+    print(f"❌ Groq initialization failed: {e}")
+    client = None
 
 profile_data = """
 You are Arka AI representing Arkaprabha Banerjee - Full-Stack ML Engineer from Kolkata, India.
