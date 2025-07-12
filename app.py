@@ -25,11 +25,15 @@ class ChatResponse(BaseModel):
     response: str
     timestamp: str
 
-# Initialize Groq
+# Initialize Groq with error handling
 try:
-    client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    if not groq_api_key:
+        raise ValueError("GROQ_API_KEY environment variable is required")
+    client = Groq(api_key=groq_api_key)
+    print("✅ Groq client initialized successfully")
 except Exception as e:
-    print(f"Groq initialization failed: {e}")
+    print(f"❌ Groq initialization failed: {e}")
     client = None
 
 profile_data = """
@@ -58,7 +62,7 @@ Be enthusiastic, technical, and always offer to connect! Speak as "I" when refer
 async def chat(request: ChatRequest):
     try:
         if not client:
-            raise HTTPException(status_code=503, detail="Groq client not initialized")
+            raise HTTPException(status_code=503, detail="Groq client not initialized - check GROQ_API_KEY")
         
         messages = [
             {"role": "system", "content": profile_data},
@@ -83,6 +87,7 @@ async def chat(request: ChatRequest):
         )
         
     except Exception as e:
+        print(f"Chat error: {e}")
         # Fallback response if Groq fails
         fallback_msg = """Hi! I'm Arka AI representing Arkaprabha Banerjee. 
         
@@ -104,7 +109,8 @@ async def chat(request: ChatRequest):
 def health():
     return {
         "status": "healthy",
-        "groq_status": "connected" if client else "fallback_mode"
+        "groq_status": "connected" if client else "fallback_mode",
+        "timestamp": datetime.utcnow().isoformat()
     }
 
 @app.get("/")
