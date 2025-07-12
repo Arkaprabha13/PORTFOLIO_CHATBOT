@@ -5,7 +5,26 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
-from groq import Groq
+
+# Debug groq package contents
+try:
+    import groq
+    print(f"Groq package contents: {dir(groq)}")
+    from groq import Groq
+    print("✅ Groq imported successfully")
+except ImportError as e:
+    print(f"❌ Groq import failed: {e}")
+    # Try alternative import methods
+    try:
+        from groq.client import Groq
+        print("✅ Groq imported from groq.client")
+    except ImportError:
+        try:
+            from groq import Client as Groq
+            print("✅ Groq imported as Client")
+        except ImportError:
+            print("❌ All Groq import methods failed")
+            Groq = None
 
 app = FastAPI(title="Arka AI Assistant")
 
@@ -25,16 +44,18 @@ class ChatResponse(BaseModel):
     response: str
     timestamp: str
 
-# Initialize Groq with error handling
-try:
-    groq_api_key = os.getenv("GROQ_API_KEY")
-    if not groq_api_key:
-        raise ValueError("GROQ_API_KEY environment variable is required")
-    client = Groq(api_key=groq_api_key)
-    print("✅ Groq client initialized successfully")
-except Exception as e:
-    print(f"❌ Groq initialization failed: {e}")
-    client = None
+# Initialize Groq client directly (no ArkaAIAssistant class)
+client = None
+if Groq:
+    try:
+        groq_api_key = os.getenv("GROQ_API_KEY")
+        if groq_api_key:
+            client = Groq(api_key=groq_api_key)
+            print("✅ Groq client initialized successfully")
+        else:
+            print("❌ GROQ_API_KEY not found")
+    except Exception as e:
+        print(f"❌ Groq client initialization failed: {e}")
 
 profile_data = """
 You are Arka AI representing Arkaprabha Banerjee - Full-Stack ML Engineer from Kolkata, India.
@@ -62,7 +83,40 @@ Be enthusiastic, technical, and always offer to connect! Speak as "I" when refer
 async def chat(request: ChatRequest):
     try:
         if not client:
-            raise HTTPException(status_code=503, detail="Groq client not initialized - check GROQ_API_KEY")
+            # Enhanced fallback response when Groq is unavailable
+            fallback_msg = """Hi! I'm Arka AI representing Arkaprabha Banerjee - Full-Stack ML Engineer from Kolkata! 🚀
+
+**Quick Highlights:**
+• 🎓 B.Tech CSE (Data Science) at Heritage Institute, CGPA: 9.1/10
+• 💻 500+ LeetCode problems solved across all difficulty levels
+• 🌾 Built Krishak AI - Agricultural platform with 71.35% disease detection accuracy, helping 1000+ farmers
+• 🤖 Created AutoML SaaS Platform - 80% reduction in model development time
+• 🧠 Developed RAG-Powered Assistant with 30% faster response times
+
+**Technical Expertise:**
+• Languages: Python, C++, JavaScript, SQL, TypeScript, C#
+• Backend: Django MVT, FastAPI, Flask, .NET MVC
+• AI/ML: LangChain, FAISS, Qdrant, TensorFlow, PyTorch, Groq API
+• Frontend: React, Next.js, HTML5, CSS3, Streamlit
+
+I'm passionate about building technology that transforms lives! Whether it's agricultural AI, AutoML platforms, or advanced RAG systems, I focus on creating production-ready solutions with real-world impact.
+
+**Available for:**
+• AI/ML project development
+• Full-stack web applications
+• Technical consulting and mentoring
+• Performance optimization
+
+📫 **Let's Connect:** arkaofficial13@gmail.com
+🔗 **GitHub:** https://github.com/Arkaprabha13
+💼 **LinkedIn:** https://linkedin.com/in/arkaprabha-banerjee-936b29253
+
+What specific aspect of my work interests you most?"""
+            
+            return ChatResponse(
+                response=fallback_msg,
+                timestamp=datetime.utcnow().isoformat()
+            )
         
         messages = [
             {"role": "system", "content": profile_data},
@@ -71,7 +125,7 @@ async def chat(request: ChatRequest):
         
         # Add recent history if provided
         if request.history:
-            for msg in request.history[-3:]:  # Last 3 messages only
+            for msg in request.history[-3:]:
                 messages.insert(-1, msg)
         
         completion = client.chat.completions.create(
@@ -88,20 +142,9 @@ async def chat(request: ChatRequest):
         
     except Exception as e:
         print(f"Chat error: {e}")
-        # Fallback response if Groq fails
-        fallback_msg = """Hi! I'm Arka AI representing Arkaprabha Banerjee. 
-        
-🚀 Quick highlights:
-• Full-Stack ML Engineer from Kolkata, India
-• 500+ LeetCode problems solved
-• Built Krishak AI (71.35% accuracy, helping 1000+ farmers)
-• Expert in Python, FastAPI, Django, AI/ML
-• Available for collaborations!
-
-📫 Contact: arkaofficial13@gmail.com"""
-        
+        # Fallback response
         return ChatResponse(
-            response=fallback_msg,
+            response="Hi! I'm Arka AI representing Arkaprabha Banerjee. I'm currently experiencing technical difficulties, but I'd love to tell you about his work in AI/ML and full-stack development! Please contact him directly at arkaofficial13@gmail.com for immediate assistance.",
             timestamp=datetime.utcnow().isoformat()
         )
 
