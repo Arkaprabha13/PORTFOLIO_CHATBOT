@@ -136,7 +136,7 @@ Key Information:
 - Frontend: React, Next.js, HTML5, CSS3, Streamlit
 
 Flagship Projects:
-1. Krishak AI - Agricultural platform with 71.35% disease detection accuracy, helping 1000+ farmers
+1. Krishak AI - Agricultural platform for farmer which includes crop recommendations , plantation planning , sms system which can notify them directly about any forecast which may affect their crops , llm query access through sms , with 71.35% disease detection accuracy, helping 1000+ farmers
 2. AutoML SaaS Platform - 80% reduction in model development time for non-technical users
 3. RAG-Powered Assistant - Multi-agent system with 30% faster response times
 
