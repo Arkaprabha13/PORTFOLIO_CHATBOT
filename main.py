@@ -7,7 +7,32 @@ from pydantic import BaseModel
 import uvicorn
 from groq import Groq
 from dotenv import load_dotenv
+# Add this RIGHT BEFORE your Groq client initialization
 
+
+# Clear ALL possible proxy environment variables
+proxy_vars = [
+    'HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy',
+    'ALL_PROXY', 'all_proxy', 'NO_PROXY', 'no_proxy',
+    'FTP_PROXY', 'ftp_proxy', 'SOCKS_PROXY', 'socks_proxy'
+]
+
+for var in proxy_vars:
+    if var in os.environ:
+        del os.environ[var]
+        print(f"Cleared {var}")
+
+# Now initialize Groq client
+try:
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    if not groq_api_key:
+        raise ValueError("GROQ_API_KEY environment variable is required")
+    
+    client = Groq(api_key=groq_api_key)
+    print("✅ Groq client initialized successfully")
+except Exception as e:
+    print(f"❌ Groq initialization failed: {e}")
+    client = None
 # Load environment variables from .env file
 load_dotenv()
 app = FastAPI(title="Arka AI Assistant")
@@ -29,17 +54,6 @@ class ChatResponse(BaseModel):
     timestamp: str
 
 # Clean Groq client initialization (no proxy configuration)
-try:
-    groq_api_key = os.getenv("GROQ_API_KEY")
-    if not groq_api_key:
-        raise ValueError("GROQ_API_KEY environment variable is required")
-    
-    # Simple initialization without proxy parameters
-    client = Groq(api_key=groq_api_key)
-    print("✅ Groq client initialized successfully")
-except Exception as e:
-    print(f"❌ Groq initialization failed: {e}")
-    client = None
 
 profile_data = """
 You are Arka AI representing Arkaprabha Banerjee - Full-Stack ML Engineer from Kolkata, India.
