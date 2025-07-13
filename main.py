@@ -5,17 +5,24 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
-from groq import Groq
+from dotenv import load_dotenv
+import os
+import sys
 from dotenv import load_dotenv
 
-# Load environment variables from .env file FIRST
 load_dotenv()
 
-# Clear ALL possible proxy environment variables BEFORE Groq initialization
+# Force disable proxy detection at multiple levels
+os.environ['NO_PROXY'] = '*'
+os.environ['no_proxy'] = '*'
+os.environ['PYTHONHTTPSVERIFY'] = '0'
+
+# Clear all proxy variables
 proxy_vars = [
     'HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy',
     'ALL_PROXY', 'all_proxy', 'NO_PROXY', 'no_proxy',
-    'FTP_PROXY', 'ftp_proxy', 'SOCKS_PROXY', 'socks_proxy'
+    'FTP_PROXY', 'ftp_proxy', 'SOCKS_PROXY', 'socks_proxy',
+    'REQUESTS_CA_BUNDLE', 'CURL_CA_BUNDLE'
 ]
 
 for var in proxy_vars:
@@ -23,15 +30,43 @@ for var in proxy_vars:
         del os.environ[var]
         print(f"Cleared {var}")
 
-# Initialize Groq client with proper error handling
-try:
-    # Add this right after load_dotenv() and before Groq initialization
-    print("=== DEBUG: Environment Variables ===")
-    groq_key = os.getenv("GROQ_API_KEY")
-    print(f"GROQ_API_KEY exists: {bool(groq_key)}")
-    print(f"GROQ_API_KEY length: {len(groq_key) if groq_key else 0}")
-    print(f"PORT: {os.environ.get('PORT', 'Not set')}")
+# Patch both httpx and requests
+def patch_http_libraries():
+    try:
+        import httpx
+        original_init = httpx.Client.__init__
+        def no_proxy_init(self, *args, **kwargs):
+            kwargs.pop('proxies', None)
+            kwargs.pop('proxy', None)
+            kwargs.pop('trust_env', None)
+            kwargs['trust_env'] = False
+            return original_init(self, *args, **kwargs)
+        httpx.Client.__init__ = no_proxy_init
+        print("✅ HTTPX patched")
+    except ImportError:
+        pass
+    
+    try:
+        import requests
+        original_session_init = requests.Session.__init__
+        def no_proxy_session_init(self, *args, **kwargs):
+            result = original_session_init(self, *args, **kwargs)
+            self.proxies = {}
+            self.trust_env = False
+            return result
+        requests.Session.__init__ = no_proxy_session_init
+        print("✅ Requests patched")
+    except ImportError:
+        pass
 
+# Apply patches before importing Groq
+patch_http_libraries()
+
+from groq import Groq
+
+# Initialize with enhanced error handling
+try:
+    groq_api_key = os.getenv("GROQ_API_KEY")
     if not groq_api_key:
         raise ValueError("GROQ_API_KEY environment variable is required")
     
@@ -39,7 +74,9 @@ try:
     print("✅ Groq client initialized successfully")
 except Exception as e:
     print(f"❌ Groq initialization failed: {e}")
+    print(f"Error type: {type(e).__name__}")
     client = None
+
 
 # Initialize FastAPI app
 app = FastAPI(title="Arka AI Assistant")
