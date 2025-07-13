@@ -7,10 +7,11 @@ from pydantic import BaseModel
 import uvicorn
 from groq import Groq
 from dotenv import load_dotenv
-# Add this RIGHT BEFORE your Groq client initialization
 
+# Load environment variables from .env file FIRST
+load_dotenv()
 
-# Clear ALL possible proxy environment variables
+# Clear ALL possible proxy environment variables BEFORE Groq initialization
 proxy_vars = [
     'HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy',
     'ALL_PROXY', 'all_proxy', 'NO_PROXY', 'no_proxy',
@@ -22,7 +23,7 @@ for var in proxy_vars:
         del os.environ[var]
         print(f"Cleared {var}")
 
-# Now initialize Groq client
+# Initialize Groq client with proper error handling
 try:
     groq_api_key = os.getenv("GROQ_API_KEY")
     if not groq_api_key:
@@ -33,10 +34,11 @@ try:
 except Exception as e:
     print(f"❌ Groq initialization failed: {e}")
     client = None
-# Load environment variables from .env file
-load_dotenv()
+
+# Initialize FastAPI app
 app = FastAPI(title="Arka AI Assistant")
 
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -45,6 +47,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Pydantic models
 class ChatRequest(BaseModel):
     message: str
     history: Optional[List[Dict]] = []
@@ -53,8 +56,7 @@ class ChatResponse(BaseModel):
     response: str
     timestamp: str
 
-# Clean Groq client initialization (no proxy configuration)
-
+# Profile data for the AI assistant
 profile_data = """
 You are Arka AI representing Arkaprabha Banerjee - Full-Stack ML Engineer from Kolkata, India.
 
@@ -77,6 +79,7 @@ LinkedIn: https://linkedin.com/in/arkaprabha-banerjee-936b29253
 Be enthusiastic, technical, and always offer to connect! Speak as "I" when referring to Arkaprabha's work.
 """
 
+# API Routes
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     try:
@@ -158,6 +161,7 @@ def health():
 def root():
     return {"message": "Arka AI Portfolio Assistant is running!"}
 
+# Main execution
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(
