@@ -25,7 +25,13 @@ for var in proxy_vars:
 
 # Initialize Groq client with proper error handling
 try:
-    groq_api_key = os.getenv("GROQ_API_KEY")
+    # Add this right after load_dotenv() and before Groq initialization
+    print("=== DEBUG: Environment Variables ===")
+    groq_key = os.getenv("GROQ_API_KEY")
+    print(f"GROQ_API_KEY exists: {bool(groq_key)}")
+    print(f"GROQ_API_KEY length: {len(groq_key) if groq_key else 0}")
+    print(f"PORT: {os.environ.get('PORT', 'Not set')}")
+
     if not groq_api_key:
         raise ValueError("GROQ_API_KEY environment variable is required")
     
