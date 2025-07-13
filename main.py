@@ -10,19 +10,24 @@ import os
 import sys
 from dotenv import load_dotenv
 
+import os
+from datetime import datetime
+from typing import List, Dict, Optional
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import uvicorn
+from groq import Groq
+from dotenv import load_dotenv
+
+# Load environment variables first
 load_dotenv()
 
-# Force disable proxy detection at multiple levels
-os.environ['NO_PROXY'] = '*'
-os.environ['no_proxy'] = '*'
-os.environ['PYTHONHTTPSVERIFY'] = '0'
-
-# Clear all proxy variables
+# Clear proxy environment variables
 proxy_vars = [
     'HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy',
     'ALL_PROXY', 'all_proxy', 'NO_PROXY', 'no_proxy',
-    'FTP_PROXY', 'ftp_proxy', 'SOCKS_PROXY', 'socks_proxy',
-    'REQUESTS_CA_BUNDLE', 'CURL_CA_BUNDLE'
+    'FTP_PROXY', 'ftp_proxy', 'SOCKS_PROXY', 'socks_proxy'
 ]
 
 for var in proxy_vars:
@@ -30,53 +35,35 @@ for var in proxy_vars:
         del os.environ[var]
         print(f"Cleared {var}")
 
-# Patch both httpx and requests
-def patch_http_libraries():
-    try:
-        import httpx
-        original_init = httpx.Client.__init__
-        def no_proxy_init(self, *args, **kwargs):
-            kwargs.pop('proxies', None)
-            kwargs.pop('proxy', None)
-            kwargs.pop('trust_env', None)
-            kwargs['trust_env'] = False
-            return original_init(self, *args, **kwargs)
-        httpx.Client.__init__ = no_proxy_init
-        print("✅ HTTPX patched")
-    except ImportError:
-        pass
-    
-    try:
-        import requests
-        original_session_init = requests.Session.__init__
-        def no_proxy_session_init(self, *args, **kwargs):
-            result = original_session_init(self, *args, **kwargs)
-            self.proxies = {}
-            self.trust_env = False
-            return result
-        requests.Session.__init__ = no_proxy_session_init
-        print("✅ Requests patched")
-    except ImportError:
-        pass
+# Debug environment variables
+print("=== DEBUG: Environment Variables ===")
+groq_api_key = os.getenv("GROQ_API_KEY")  # ← FIX: Assign to variable here
+print(f"GROQ_API_KEY exists: {bool(groq_api_key)}")
+print(f"GROQ_API_KEY length: {len(groq_api_key) if groq_api_key else 0}")
+print(f"PORT: {os.environ.get('PORT', 'Not set')}")
 
-# Apply patches before importing Groq
-patch_http_libraries()
-
-from groq import Groq
-
-# Initialize with enhanced error handling
+# Initialize Groq client using the assigned variable
 try:
-    groq_api_key = os.getenv("GROQ_API_KEY")
-    if not groq_api_key:
+    if not groq_api_key:  # ← Now this variable is properly defined
         raise ValueError("GROQ_API_KEY environment variable is required")
     
-    client = Groq(api_key=groq_api_key)
+    client = Groq(api_key=groq_api_key)  # ← And used here
     print("✅ Groq client initialized successfully")
+    
+    # Test the client
+    test_response = client.chat.completions.create(
+        model="llama3-8b-8192",
+        messages=[{"role": "user", "content": "test"}],
+        max_tokens=10
+    )
+    print("✅ Groq client test successful")
+    
 except Exception as e:
     print(f"❌ Groq initialization failed: {e}")
-    print(f"Error type: {type(e).__name__}")
+    print(f"❌ Error type: {type(e).__name__}")
     client = None
 
+# Rest of your FastAPI code remains the same...
 
 # Initialize FastAPI app
 app = FastAPI(title="Arka AI Assistant")
