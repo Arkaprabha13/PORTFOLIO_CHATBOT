@@ -52,7 +52,7 @@ try:
     
     # Test the client
     test_response = client.chat.completions.create(
-        model="llama3-8b-8192",
+        model="qwen/qwen3-32b",
         messages=[{"role": "user", "content": "test"}],
         max_tokens=10
     )
