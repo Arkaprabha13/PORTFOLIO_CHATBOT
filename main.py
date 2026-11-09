@@ -203,7 +203,7 @@ What specific aspect of my work interests you most?"""
         
         # Call Groq API with qwen model
         completion = client.chat.completions.create(
-            model="qwen/qwen3-32b",
+            model="openai/gpt-oss-120b",
             messages=messages,
             max_tokens=500,
             temperature=0.7,
@@ -232,7 +232,7 @@ def health():
     return {
         "status": "healthy",
         "groq_status": "connected" if client else "fallback_mode",
-        "model": "qwen/qwen3-32b",
+        "model": "openai/gpt-oss-120b",
         "timestamp": datetime.utcnow().isoformat()
     }
 
@@ -243,7 +243,7 @@ def root():
     """
     return {
         "message": "Arka AI Portfolio Assistant is running!",
-        "model": "qwen/qwen3-32b",
+        "model": "openai/gpt-oss-120b",
         "endpoints": {
             "chat": "/api/chat",
             "health": "/api/health"
@@ -258,7 +258,7 @@ def info():
     return {
         "name": "Arka AI Assistant",
         "representing": "Arkaprabha Banerjee",
-        "model": "qwen/qwen3-32b",
+        "model": "openai/gpt-oss-120b",
         "specialties": [
             "Full-Stack Development",
             "Machine Learning",
@@ -277,7 +277,7 @@ def info():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     print(f"Starting Arka AI Assistant on port {port}")
-    print(f"Using model: qwen/qwen3-32b")
+    print(f"Using model: openai/gpt-oss-120b")
     
     uvicorn.run(
         "main:app",
