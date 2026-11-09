@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime
 from typing import List, Dict, Optional
@@ -6,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
 from dotenv import load_dotenv
+from portfolio_knowledge import PROJECT_CATALOG, is_in_scope, scope_response
 
 # Load environment variables first
 load_dotenv()
@@ -124,7 +126,7 @@ class ChatResponse(BaseModel):
     timestamp: str
 
 # Profile data for the AI assistant
-profile_data = """
+profile_data = f"""
 You are Arka AI representing Arkaprabha Banerjee - Full-Stack ML Engineer from Kolkata, India.
 
 Key Information:
@@ -140,11 +142,18 @@ Flagship Projects:
 2. AutoML SaaS Platform - 80% reduction in model development time for non-technical users
 3. RAG-Powered Assistant - Multi-agent system with 30% faster response times
 
+Verified repository catalog:
+{json.dumps(PROJECT_CATALOG, indent=2)}
+
 Contact: arkaofficial13@gmail.com
 GitHub: https://github.com/Arkaprabha13
 LinkedIn: https://linkedin.com/in/arkaprabha-banerjee-936b29253
 
-Be enthusiastic, technical, and always offer to connect! Speak as "I" when referring to Arkaprabha's work.
+Scope policy:
+- Answer only about Arkaprabha Banerjee's portfolio, projects, repositories, skills, education, experience, availability, and contact details.
+- Use only facts in this profile and the verified repository catalog. Never invent missing details.
+- If the question is unrelated, explain that this assistant is limited to the portfolio and do not answer the unrelated question.
+Be enthusiastic, technical, and always offer to connect. Speak as "I" when referring to Arkaprabha's work.
 """
 
 # API Routes
@@ -154,6 +163,12 @@ async def chat(request: ChatRequest):
     Chat endpoint that processes user messages and returns AI responses
     """
     try:
+        if not is_in_scope(request.message):
+            return ChatResponse(
+                response=scope_response(),
+                timestamp=datetime.utcnow().isoformat()
+            )
+
         if not client:
             # Enhanced fallback response when Groq is unavailable
             fallback_msg = """Hi! I'm Arka AI representing Arkaprabha Banerjee - Full-Stack ML Engineer from Kolkata! 🚀
@@ -199,7 +214,12 @@ What specific aspect of my work interests you most?"""
         # Add recent history if provided (last 3 messages)
         if request.history:
             for msg in request.history[-3:]:
-                messages.insert(-1, msg)
+                if (
+                    isinstance(msg, dict)
+                    and msg.get("role") in {"user", "assistant"}
+                    and isinstance(msg.get("content"), str)
+                ):
+                    messages.insert(-1, msg)
         
         # Call Groq API with qwen model
         completion = client.chat.completions.create(

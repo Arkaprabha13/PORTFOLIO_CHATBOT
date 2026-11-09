@@ -2,6 +2,7 @@ import os, json
 from datetime import datetime
 from groq import Groq
 from dotenv import load_dotenv
+from portfolio_knowledge import PROJECT_CATALOG, is_in_scope, scope_response
 
 load_dotenv()
 proxies = {
@@ -169,6 +170,8 @@ class ArkaAIAssistant:
                     ]
                 }
             },
+
+            "recent_projects": PROJECT_CATALOG,
             
             "professional_experience": {
                 "noobuild_dsa_team": {
@@ -276,9 +279,16 @@ class ArkaAIAssistant:
         - Refer sensitive business negotiations to direct contact
         - Always maintain professional yet friendly tone
         - Focus on technical expertise while being accessible to non-technical audiences
+        - Only answer questions about this portfolio and the projects listed in the profile.
+        - Never invent repository features, metrics, dates, employers, or personal details.
+        - If a question is unrelated or the profile lacks the answer, say so clearly and
+          redirect the visitor to a relevant portfolio topic.
         """
 
     def chat(self, question: str, history: list[dict]) -> str:
+        if not is_in_scope(question):
+            return scope_response()
+
         context = self._build_smart_context(question)
         
         system_message = {
@@ -286,7 +296,13 @@ class ArkaAIAssistant:
             "content": f"{self.persona}\n\nDETAILED PROFILE:\n{json.dumps(self.profile, indent=2)}\n\nCONTEXT FOR THIS QUERY: {context}"
         }
         
-        messages = [system_message] + history[-6:] + [{"role": "user", "content": question}]
+        safe_history = [
+            message for message in history[-6:]
+            if isinstance(message, dict)
+            and message.get("role") in {"user", "assistant"}
+            and isinstance(message.get("content"), str)
+        ]
+        messages = [system_message] + safe_history + [{"role": "user", "content": question}]
         
         completion = self.client.chat.completions.create(
             model="qwen/qwen3-32b",
@@ -336,6 +352,13 @@ class ArkaAIAssistant:
         
         if any(word in query_lower for word in ['rag', 'assistant', 'chatbot', 'qa', 'question']):
             contexts.append("Discuss RAG-powered assistant, multi-agent systems, and Groq API integration")
+
+        for project in PROJECT_CATALOG:
+            project_terms = {project["name"].lower(), project["repo"].lower()}
+            if any(term in query_lower for term in project_terms):
+                contexts.append(
+                    f"Use only the verified details for {project['name']} in the project catalog."
+                )
         
         # Backend-specific context
         if any(word in query_lower for word in ['backend', 'api', 'django', 'fastapi', 'flask', 'dotnet', 'mvc']):
