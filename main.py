@@ -87,7 +87,7 @@ try:
     # Test the client with qwen model
     try:
         test_response = client.chat.completions.create(
-            model="qwen/qwen3-32b",
+            model="openai/gpt-oss-120b",
             messages=[{"role": "user", "content": "test"}],
             max_tokens=10,
             temperature=0.7
